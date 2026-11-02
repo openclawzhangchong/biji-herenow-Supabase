@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5f1">
+<meta name="description" content="biji · 端到端加密的多端笔记本">
+<title>biji · 加密笔记</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='3' width='24' height='26' rx='5' fill='%230d7a5f'/%3E%3Cpath d='M10 9h12M10 14h12M10 19h7' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="biji">
+<link rel="stylesheet" href="style.css?v=9">
+</head>
+<body>
+
+<!-- SVG 图标库 -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-logo" viewBox="0 0 32 32"><rect x="4" y="3" width="24" height="26" rx="5" fill="currentColor" opacity=".12"/><rect x="4" y="3" width="24" height="26" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 10h12M10 15h12M10 20h7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3.5 3.5c.4.4.1 1-.4 1H6.9c-.5 0-.8-.6-.4-1L10 10 9 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 14.5V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l3 3" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l.8 12a1 1 0 0 0 1 1h7.4a1 1 0 0 0 1-1l.8-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 11a8 8 0 1 1 2.3 6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 19v-6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20.5h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3M7 7.5l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20.5h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11.5 10.5L20 2M16 6l3 3M13.5 8.5l2.5 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L19.5 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.4" fill="currentColor"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.4-9A6 6 0 0 1 18.3 11a3.8 3.8 0 0 1-.8 7.5H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5L21.5 20h-19L12 3.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-stats" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.5 15.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6z" fill="currentColor" opacity=".55"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5A1 1 0 0 1 4.5 3.5h7.7a2 2 0 0 1 1.4.6l6.8 6.8a2 2 0 0 1 0 2.8l-6.5 6.5a2 2 0 0 1-2.8 0l-6.8-6.8a2 2 0 0 1-.6-1.4z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/></symbol>
+</svg>
+
+<!-- 锁屏 -->
+<section id="screen-lock" class="screen" hidden>
+  <div class="lock-wrap">
+    <div class="lock-card">
+      <div class="lock-logo"><svg class="icon logo-icon"><use href="#i-logo"/></svg></div>
+      <h1 class="lock-title">biji<span class="lock-dot">·</span>笔记</h1>
+      <p class="lock-sub" id="lock-sub">端到端加密，只有你能读</p>
+
+      <form id="form-setup" hidden>
+        <label class="field"><span>设置解锁密码</span>
+          <input type="password" id="setup-pass" placeholder="至少 6 位，用于加密全部笔记" autocomplete="new-password" minlength="6" required>
+        </label>
+        <label class="field"><span>再输一次</span>
+          <input type="password" id="setup-pass2" placeholder="重复密码" autocomplete="new-password" required>
+        </label>
+        <label class="field"><span>密码提示（可选，只存本机）</span>
+          <input type="text" id="setup-hint" placeholder="例如：我的常用口令" maxlength="60">
+        </label>
+        <p class="warn-line"><svg class="icon sm"><use href="#i-alert"/></svg>密码丢失将无法读取任何笔记，请务必记牢</p>
+        <button class="btn primary block" type="submit">开始使用</button>
+      </form>
+
+      <form id="form-unlock" hidden>
+        <label class="field"><span>输入密码解锁</span>
+          <input type="password" id="unlock-pass" placeholder="密码" autocomplete="current-password" required>
+        </label>
+        <p class="hint-line" id="unlock-hint" hidden></p>
+        <p class="err-line" id="unlock-err" hidden>密码不对，或笔记属于其他密码</p>
+        <button class="btn primary block" type="submit">解锁</button>
+        <button class="btn ghost block" type="button" id="btn-forgot">首次使用或忘记密码 → 创建新密码</button>
+      </form>
+
+      <label class="trust-row" id="trust-row" hidden>
+        <input type="checkbox" id="trust-device" checked> 在本机保持解锁
+      </label>
+    </div>
+    <p class="lock-foot">biji · 静态加密笔记本 · Supabase × here.now</p>
+  </div>
+</section>
+
+<!-- 主界面 -->
+<section id="screen-main" class="screen" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="icon logo-icon"><use href="#i-logo"/></svg>
+      <span class="brand-name">biji</span>
+    </div>
+    <div class="top-actions">
+      <span id="sync-dot" class="sync-dot" title="同步状态"></span>
+      <button class="icon-btn" id="btn-search" title="搜索 (Ctrl+K)"><svg class="icon"><use href="#i-search"/></svg></button>
+      <button class="icon-btn" id="btn-refresh" title="刷新同步"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      <button class="icon-btn" id="btn-menu" title="菜单"><svg class="icon"><use href="#i-dots"/></svg></button>
+    </div>
+  </header>
+
+  <div class="searchbar" id="searchbar" hidden>
+    <svg class="icon sm"><use href="#i-search"/></svg>
+    <input type="search" id="search-input" placeholder="搜索笔记内容与标签…">
+    <button class="icon-btn" id="btn-search-close"><svg class="icon sm"><use href="#i-x"/></svg></button>
+  </div>
+
+  <main class="wrap">
+    <div class="card composer" id="composer">
+      <textarea id="composer-input" rows="1" placeholder="记点什么…&#10;支持 Markdown 与 #标签，Ctrl+Enter 保存"></textarea>
+      <div class="composer-foot">
+        <div class="tag-preview" id="composer-tags"></div>
+        <div class="composer-meta">
+          <span class="char-count" id="composer-count"></span>
+          <button class="btn primary sm" id="btn-save">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tagbar" id="tagbar"></div>
+    <div class="tag-manage" id="tag-manage" hidden>
+      <svg class="icon sm"><use href="#i-tag"/></svg>
+      <span id="tag-manage-name"></span>
+      <button class="btn ghost sm" id="btn-tag-rename">重命名</button>
+      <button class="btn danger-ghost sm" id="btn-tag-delete">删除标签</button>
+    </div>
+
+    <div id="feed"></div>
+  </main>
+</section>
+
+<!-- 菜单 -->
+<div id="menu-sheet" class="sheet-backdrop" hidden>
+  <div class="sheet">
+    <button class="sheet-item" id="menu-stats"><svg class="icon"><use href="#i-stats"/></svg><span>统计与热力图</span></button>
+    <button class="sheet-item" id="menu-review"><svg class="icon"><use href="#i-sparkle"/></svg><span>每日回顾</span></button>
+    <button class="sheet-item" id="menu-trash"><svg class="icon"><use href="#i-trash"/></svg><span>回收站</span></button>
+    <button class="sheet-item" id="menu-theme"><svg class="icon"><use href="#i-moon"/></svg><span>深色模式</span></button>
+    <button class="sheet-item" id="menu-export-md"><svg class="icon"><use href="#i-download"/></svg><span>导出 Markdown</span></button>
+    <button class="sheet-item" id="menu-export"><svg class="icon"><use href="#i-download"/></svg><span>导出备份（JSON）</span></button>
+    <button class="sheet-item" id="menu-import"><svg class="icon"><use href="#i-upload"/></svg><span>导入备份</span></button>
+    <button class="sheet-item" id="menu-changepass"><svg class="icon"><use href="#i-key"/></svg><span>修改密码</span></button>
+    <button class="sheet-item" id="menu-lock"><svg class="icon"><use href="#i-lock"/></svg><span>立即锁定</span></button>
+    <button class="sheet-item" id="menu-about"><svg class="icon"><use href="#i-info"/></svg><span>关于 / 安全说明</span></button>
+  </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div id="modal-edit" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head"><span>编辑笔记</span><button class="icon-btn" id="edit-close"><svg class="icon sm"><use href="#i-x"/></svg></button></div>
+    <textarea id="edit-input" rows="6"></textarea>
+    <div class="modal-foot">
+      <span class="char-count" id="edit-count"></span>
+      <button class="btn ghost" id="edit-cancel">取消</button>
+      <button class="btn primary" id="edit-save">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 统计 -->
+<div id="modal-stats" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head"><span>统计</span><button class="icon-btn" id="stats-close"><svg class="icon sm"><use href="#i-x"/></svg></button></div>
+    <div class="stat-nums" id="stat-nums"></div>
+    <div class="heatmap" id="heatmap"></div>
+    <p class="heatmap-legend">近 20 周记录热力 · 越绿越勤快</p>
+  </div>
+</div>
+
+<!-- 每日回顾 -->
+<div id="modal-review" class="modal-backdrop" hidden>
+  <div class="modal review">
+    <div class="modal-head"><span><svg class="icon sm" style="display:inline-block;vertical-align:-3px"><use href="#i-sparkle"/></svg> 每日回顾</span><button class="icon-btn" id="review-close"><svg class="icon sm"><use href="#i-x"/></svg></button></div>
+    <div id="review-body"></div>
+    <div class="modal-foot"><span id="review-meta" class="char-count"></span><button class="btn ghost" id="review-another">换一条</button></div>
+  </div>
+</div>
+
+<!-- 关于 -->
+<div id="modal-about" class="modal-backdrop" hidden>
+  <div class="modal about">
+    <div class="modal-head"><span>关于 biji</span><button class="icon-btn" id="about-close"><svg class="icon sm"><use href="#i-x"/></svg></button></div>
+    <div class="about-body">
+      <p><b>biji</b> 是一个纯静态加密笔记本：笔记用你的密码做 AES-256-GCM 端到端加密后，存放在 Supabase 数据库中（经由 here.now 服务端代理访问，密钥不出后端），多端打开同一网址即可同步。</p>
+      <ul>
+        <li>支持 Markdown 与任务清单，<code>#标签</code> 归类，回收站 30 天可恢复</li>
+        <li>服务器上只有密文，平台方也读不到内容</li>
+        <li>密码即钥匙：<b>丢失无法找回</b>，新设备需输入同一密码</li>
+        <li>写入接口对持有网址的人开放（加密保护内容），建议不要公开传播网址</li>
+        <li>单条笔记约 3600 汉字上限；重要内容请定期「导出备份」</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 离线/错误横幅 -->
+<div id="banner" class="banner" hidden></div>
+
+<!-- Toast -->
+<div id="toasts"></div>
+
+<input type="file" id="import-file" accept=".json,application/json" hidden>
+<script src="app.js?v=9"></script>
+</body>
+</html>
