@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="biji">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -116,6 +116,11 @@
         </div>
       </div>
     </div>
+    <div class="draft-bar" id="draft-bar" hidden>
+      <svg class="icon sm"><use href="#i-history"/></svg>
+      <span>已恢复 <b id="draft-bar-time"></b> 的草稿（仅保存在本机）</span>
+      <button class="link-btn" id="draft-bar-discard">丢弃</button>
+    </div>
 
     <div class="tagbar" id="tagbar"></div>
     <div class="tag-manage" id="tag-manage" hidden>
@@ -218,6 +223,6 @@
 <div id="toasts"></div>
 
 <input type="file" id="import-file" accept=".json,application/json" hidden>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

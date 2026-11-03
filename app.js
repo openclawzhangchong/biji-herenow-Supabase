@@ -19,7 +19,7 @@ const MAX_BYTES = 11000;          // 单条内容字节上限（密文后需 < 1
 const TRASH_DAYS = 30;            // 回收站保留天数
 const DAY = 86400000;
 const DEFAULT_PASS = '123456';    // 站点默认密码，界面与 README 均公开
-const LS = { session:'biji.session.v1', cache:'biji.cache.v1', hint:'biji.hint.v1', theme:'biji.theme.v1', passOk:'biji.passok.v1', weakWarned:'biji.weakwarned.v1' };
+const LS = { session:'biji.session.v1', cache:'biji.cache.v1', hint:'biji.hint.v1', theme:'biji.theme.v1', passOk:'biji.passok.v1', weakWarned:'biji.weakwarned.v1', draft:'biji.draft.v1' };
 const PBKDF2_ITERS = 310000;
 const APP_SALT = enc.encode('biji.here.now.app-salt.v1');
 
@@ -569,7 +569,53 @@ function renderComposerTags() {
   const tags = [...extractTags(composerInput.value).values()];
   $('#composer-tags').innerHTML = tags.map(t => `<span class="note-tag">#${esc(t)}</span>`).join('');
 }
-composerInput.addEventListener('input', () => { autoGrow(composerInput); updateCount($('#composer-count'), composerInput.value); renderComposerTags(); });
+/* ---------- 草稿自动暂存（加密后落本地，明文不落盘） ---------- */
+let draftTimer = null;
+async function saveDraft(text) {
+  if (!state.key) return;
+  try {
+    if (!text) { localStorage.removeItem(LS.draft); return; }
+    const { iv, ct } = await encryptPayload(state.key, { c: text, ts: Date.now() });
+    localStorage.setItem(LS.draft, JSON.stringify({ iv, ct, ts: Date.now() }));
+  } catch {}
+}
+function scheduleSaveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => saveDraft(composerInput.value), 400);
+}
+async function restoreDraft() {
+  const raw = localStorage.getItem(LS.draft);
+  if (!raw || !state.key) return;
+  try {
+    const { iv, ct, ts } = JSON.parse(raw);
+    const p = await decryptRecord(state.key, iv, ct);
+    if (typeof p.c !== 'string' || !p.c.trim() || composerInput.value.trim()) return;
+    composerInput.value = p.c;
+    autoGrow(composerInput); updateCount($('#composer-count'), p.c); renderComposerTags();
+    // 提示条（可一键丢弃）
+    const bar = $('#draft-bar');
+    bar.hidden = false;
+    $('#draft-bar-time').textContent = relTime(ts || Date.now());
+    toast('已恢复上次未提交的草稿', { icon:'i-history', ms: 3200, action:'丢弃', onAction: () => {
+      composerInput.value = ''; autoGrow(composerInput);
+      updateCount($('#composer-count'), ''); renderComposerTags();
+      saveDraft(''); $('#draft-bar').hidden = true;
+    }});
+  } catch {
+    localStorage.removeItem(LS.draft);   // 密码变了或数据损坏，静默丢弃
+  }
+}
+$('#draft-bar-discard') && ($('#draft-bar-discard').onclick = () => {
+  composerInput.value = ''; autoGrow(composerInput);
+  updateCount($('#composer-count'), ''); renderComposerTags();
+  saveDraft(''); $('#draft-bar').hidden = true;
+});
+
+composerInput.addEventListener('input', () => {
+  autoGrow(composerInput); updateCount($('#composer-count'), composerInput.value); renderComposerTags();
+  scheduleSaveDraft();
+  if ($('#draft-bar').hidden === false) $('#draft-bar').hidden = true;
+});
 composerInput.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('#btn-save').click(); });
 $('#btn-save').onclick = async () => {
   const text = composerInput.value.trim();
@@ -579,6 +625,8 @@ $('#btn-save').onclick = async () => {
   try {
     await createNote(text);
     composerInput.value = ''; autoGrow(composerInput); updateCount($('#composer-count'), ''); renderComposerTags();
+    clearTimeout(draftTimer); saveDraft('');           // 已提交，清掉本地草稿
+    $('#draft-bar').hidden = true;
   } catch (e) {
     toast(e.code === 'rate_limit_exceeded' ? '操作太快，请稍后再试' : '保存失败：' + e.message, { icon:'i-alert' });
   } finally { btn.disabled = false; }
@@ -814,6 +862,12 @@ async function doChangePass() {
 /* ---------- 锁定 ---------- */
 function lockNow() {
   clearInterval(state.pollTimer);
+  // 锁定前把输入框内容加密存入本地草稿，并清空界面（避免下个解锁者瞥见）
+  if (composerInput.value.trim()) saveDraft(composerInput.value);
+  clearTimeout(draftTimer);
+  composerInput.value = ''; autoGrow(composerInput);
+  updateCount($('#composer-count'), ''); renderComposerTags();
+  $('#draft-bar').hidden = true;
   state.key = null; state.notes.clear();
   state.filterTag = null; state.query = ''; state.view = 'main';
   $('#search-input').value = '';
@@ -926,6 +980,7 @@ async function enterMain() {
   await loadCache(); render();
   await pullAll({ silent:false });
   startPoll();
+  await restoreDraft();          // 恢复本浏览器未提交的草稿（纯本地）
   maybeWarnWeakPass();
 }
 
