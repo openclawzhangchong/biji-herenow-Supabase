@@ -18,7 +18,8 @@ const TAG_RE = /#([\w\u4e00-\u9fff][\w\u4e00-\u9fff-]*)/g;
 const MAX_BYTES = 11000;          // 单条内容字节上限（密文后需 < 16KB 记录上限）
 const TRASH_DAYS = 30;            // 回收站保留天数
 const DAY = 86400000;
-const LS = { session:'biji.session.v1', cache:'biji.cache.v1', hint:'biji.hint.v1', theme:'biji.theme.v1' };
+const DEFAULT_PASS = '123456';    // 站点默认密码，界面与 README 均公开
+const LS = { session:'biji.session.v1', cache:'biji.cache.v1', hint:'biji.hint.v1', theme:'biji.theme.v1', passOk:'biji.passok.v1', weakWarned:'biji.weakwarned.v1' };
 const PBKDF2_ITERS = 310000;
 const APP_SALT = enc.encode('biji.here.now.app-salt.v1');
 
@@ -31,6 +32,7 @@ const state = {
   view: 'main',         // 'main' | 'trash'
   pollTimer: null,
   editingId: null,
+  lastPassWeak: false,  // 本次会话使用的密码是否偏弱
 };
 
 /* ---------- Toast / 横幅 ---------- */
@@ -55,6 +57,66 @@ function banner(msg, sticky=false) {
 }
 const hideBanner = () => $('#banner').hidden = true;
 function setDot(s) { $('#sync-dot').className = 'sync-dot ' + s; }
+
+/* ================= 通用对话框（替代原生 confirm / prompt） ================= */
+let dialogResolve = null;
+function closeDialog(result) {
+  $('#modal-dialog').hidden = true;
+  $('#dialog-err').hidden = true;
+  if (dialogResolve) { const r = dialogResolve; dialogResolve = null; r(result); }
+}
+/**
+ * ask({ title, message, type:'confirm'|'prompt', label, value, placeholder, okText, cancelText, danger, validate })
+ * 返回 false/null（取消）或 true / 字符串
+ */
+function ask(opts = {}) {
+  const {
+    title = '确认', message = '', type = 'confirm', label = '',
+    value = '', placeholder = '', okText = '确定', cancelText = '取消',
+    danger = false, validate = null,
+  } = opts;
+  return new Promise(resolve => {
+    dialogResolve = resolve;
+    $('#dialog-title').textContent = title;
+    $('#dialog-msg').textContent = message;
+    $('#dialog-msg').hidden = !message;
+    const isPrompt = type === 'prompt';
+    $('#dialog-input-wrap').hidden = !isPrompt;
+    $('#dialog-label').textContent = label;
+    const inp = $('#dialog-input');
+    inp.value = value;
+    inp.placeholder = placeholder;
+    $('#dialog-err').hidden = true;
+    const ok = $('#dialog-ok');
+    ok.textContent = okText;
+    ok.classList.toggle('danger', danger);
+    ok.classList.toggle('primary', !danger);
+    $('#dialog-cancel').textContent = cancelText;
+    $('#modal-dialog').hidden = false;
+    setTimeout(() => (isPrompt ? inp : ok).focus(), 60);
+    if (isPrompt) { inp.focus(); inp.select?.(); }
+  });
+}
+function submitDialog() {
+  const isPrompt = !$('#dialog-input-wrap').hidden;
+  if (!isPrompt) return closeDialog(true);
+  const v = $('#dialog-input').value;
+  const err = (window.__dialogValidate || (() => null))(v);
+  if (err) { $('#dialog-err').textContent = err; $('#dialog-err').hidden = false; return; }
+  closeDialog(v);
+}
+$('#dialog-ok').onclick = submitDialog;
+$('#dialog-cancel').onclick = () => closeDialog(false);
+$('#dialog-close').onclick = () => closeDialog(false);
+$('#modal-dialog').addEventListener('click', e => { if (e.target.id === 'modal-dialog') closeDialog(false); });
+$('#dialog-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); submitDialog(); }
+});
+// 把 validate 挂到对话框提交路径上
+function askWithValidate(opts) {
+  window.__dialogValidate = opts.validate || null;
+  return ask(opts).finally(() => { window.__dialogValidate = null; });
+}
 
 /* ================= 加密 ================= */
 async function deriveKey(pass) {
@@ -463,7 +525,8 @@ async function restoreNote(id) {
   toast('已恢复', { icon:'i-restore' });
 }
 async function purgeNote(id) {               // 彻底删除
-  if (!confirm('彻底删除这条笔记？不可恢复。')) return;
+  const ok = await ask({ title: '彻底删除', message: '彻底删除这条笔记？不可恢复。', okText: '删除', danger: true });
+  if (!ok) return;
   const snap = state.notes.get(id);
   state.notes.delete(id);
   render(); saveCache();
@@ -548,8 +611,17 @@ $('#btn-refresh').onclick = () => pullAll({ silent:false });
 /* ---------- 标签管理 ---------- */
 $('#btn-tag-rename').onclick = async () => {
   const oldTag = state.filterTag; if (!oldTag) return;
-  const newName = prompt(`把 #${oldTag} 重命名为：`, oldTag);
-  if (!newName || newName.trim() === oldTag) return;
+  const newName = await askWithValidate({
+    title: '重命名标签', message: `把 #${oldTag} 重命名为：`, type: 'prompt',
+    label: '新标签名', value: oldTag, okText: '重命名',
+    validate: v => {
+      const clean = v.trim().replace(/\s+/g, '-').replace(/^#/, '');
+      if (!clean) return '请输入新标签名';
+      if (!/^[\w\u4e00-\u9fff-]+$/.test(clean)) return '只能包含中英文、数字、- 和 _';
+      return null;
+    },
+  });
+  if (newName === false || newName === null) return;
   const clean = newName.trim().replace(/\s+/g, '-').replace(/^#/, '').toLowerCase();
   if (!clean || !/^[\w\u4e00-\u9fff-]+$/.test(clean)) return toast('标签只能包含中英文、数字、- 和 _', { icon:'i-alert' });
   const re = new RegExp('#' + oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w\\u4e00-\\u9fff-])', 'gi');
@@ -566,7 +638,11 @@ $('#btn-tag-rename').onclick = async () => {
 };
 $('#btn-tag-delete').onclick = async () => {
   const oldTag = state.filterTag; if (!oldTag) return;
-  if (!confirm(`从所有笔记中删除标签 #${oldTag}？（笔记内容保留）`)) return;
+  const ok = await ask({
+    title: '删除标签', message: `从所有笔记中删除标签 #${oldTag}？（笔记内容保留）`,
+    okText: '删除标签', danger: true,
+  });
+  if (!ok) return;
   const re = new RegExp('\\s?#' + oldTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w\\u4e00-\\u9fff-])', 'gi');
   const targets = activeNotes().filter(n => extractTags(n.payload.c).has(oldTag));
   if (!targets.length) return;
@@ -700,10 +776,19 @@ $('#review-another').onclick = () => {
 
 /* ---------- 修改密码 ---------- */
 async function doChangePass() {
-  const pass = prompt('输入新密码（至少 6 位）：');
-  if (pass === null) return;
-  if (pass.length < 6) return toast('密码至少 6 位', { icon:'i-alert' });
-  if (!confirm('将重新加密全部 ' + state.notes.size + ' 条笔记并上传，继续？')) return;
+  const pass = await askWithValidate({
+    title: '修改密码', message: '新密码用于重新加密全部笔记。请记住它，丢失无法找回。',
+    type: 'prompt', label: '新密码（至少 6 位）', value: '', placeholder: '至少 6 位，建议字母+数字',
+    okText: '下一步',
+    validate: v => v.length < 6 ? '密码至少 6 位' : null,
+  });
+  if (pass === false || pass === null) return;
+  const ok = await ask({
+    title: '确认重加密',
+    message: `将重新加密全部 ${state.notes.size} 条笔记并上传，过程中请勿关闭页面。`,
+    okText: '开始', danger: true,
+  });
+  if (!ok) return;
   const newKey = await deriveKey(pass);
   const probe = await encryptPayload(newKey, { c:'__probe__', p:false, ts:Date.now() });
   await decryptRecord(newKey, probe.iv, probe.ct);
@@ -721,6 +806,7 @@ async function doChangePass() {
   }
   state.key = newKey;
   localStorage.setItem(LS.session, JSON.stringify({ k: await exportKey(newKey), t: Date.now() }));
+  localStorage.setItem(LS.passOk, '1');          // 用户已自行设强密码，不再提醒
   saveCache();
   toast(failed ? `完成，${failed} 条失败（可重试）` : '密码已更新，全部笔记已重新加密', { icon: failed ? 'i-alert' : 'i-check' });
 }
@@ -768,8 +854,32 @@ async function tryUnlock(pass, { remember=true } = {}) {
   const k = await exportKey(key);
   if (remember) localStorage.setItem(LS.session, JSON.stringify({ k, t: Date.now() }));
   else sessionStorage.setItem(LS.session, JSON.stringify({ k, t: Date.now() }));
+  state.lastPassWeak = isWeakPass(pass);           // 记住本次用的是否弱密码（仅内存）
+  if (!state.lastPassWeak) localStorage.setItem(LS.passOk, '1');
   await enterMain();
   return true;
+}
+/* 弱密码判定：默认密码、纯数字、纯字母、过短 */
+function isWeakPass(pass) {
+  if (!pass) return false;
+  if (pass === DEFAULT_PASS) return true;
+  if (pass.length < 8) return true;
+  return !(/[a-zA-Z]/.test(pass) && /[0-9]/.test(pass));
+}
+/* 进入后提醒修改默认/弱密码（每次会话最多一次） */
+function maybeWarnWeakPass() {
+  if (!state.lastPassWeak) return;
+  if (localStorage.getItem(LS.passOk) === '1') return;
+  if (sessionStorage.getItem(LS.weakWarned) === '1') return;
+  sessionStorage.setItem(LS.weakWarned, '1');
+  setTimeout(() => {
+    ask({
+      title: '⚠️ 请修改默认密码',
+      message: '当前使用的是默认/弱密码（如 123456），任何人都能打开这个网址尝试解锁。'
+        + '建议立即在「菜单 → 修改密码」换成至少 8 位、包含字母和数字的密码。',
+      okText: '去修改密码', cancelText: '稍后再说', danger: true,
+    }).then(go => { if (go) doChangePass(); });
+  }, 1200);
 }
 $('#form-setup').addEventListener('submit', async e => {
   e.preventDefault();
@@ -778,10 +888,18 @@ $('#form-setup').addEventListener('submit', async e => {
   if (p1 !== p2) return toast('两次输入不一致', { icon:'i-alert' });
   localStorage.setItem(LS.hint, $('#setup-hint').value.trim());
   state.key = await deriveKey(p1);
+  state.lastPassWeak = isWeakPass(p1);
+  if (!state.lastPassWeak) localStorage.setItem(LS.passOk, '1');
   localStorage.setItem(LS.session, JSON.stringify({ k: await exportKey(state.key), t: Date.now() }));
   await enterMain();
   toast('笔记本已创建，本机已记住密码', { icon:'i-lock' });
 });
+$('#btn-fill-default').onclick = () => {
+  $('#setup-pass').value = DEFAULT_PASS;
+  $('#setup-pass2').value = DEFAULT_PASS;
+  $('#setup-pass2').focus();
+  toast('已填入默认密码 123456，请记住它或稍后修改', { icon: 'i-key' });
+};
 $('#form-unlock').addEventListener('submit', async e => {
   e.preventDefault();
   $('#unlock-err').hidden = true;
@@ -790,8 +908,13 @@ $('#form-unlock').addEventListener('submit', async e => {
   });
   if (ok) $('#unlock-pass').value = '';
 });
-$('#btn-forgot').onclick = () => {
-  if (!confirm('用新密码开始后，旧密码加密的笔记将无法读取（记录仍保留在服务器）。\n确定继续？')) return;
+$('#btn-forgot').onclick = async () => {
+  const ok = await ask({
+    title: '创建新密码',
+    message: '用新密码开始后，旧密码加密的笔记将无法读取（记录仍保留在服务器）。确定继续？',
+    okText: '继续', danger: true,
+  });
+  if (!ok) return;
   showLock('setup');
 };
 
@@ -803,6 +926,7 @@ async function enterMain() {
   await loadCache(); render();
   await pullAll({ silent:false });
   startPoll();
+  maybeWarnWeakPass();
 }
 
 /* ================= 启动 ================= */
@@ -826,7 +950,8 @@ async function enterMain() {
 /* 全局快捷键 */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (!$('#modal-edit').hidden) closeEdit();
+    if (!$('#modal-dialog').hidden) closeDialog(false);
+    else if (!$('#modal-edit').hidden) closeEdit();
     else if (!$('#modal-stats').hidden) $('#modal-stats').hidden = true;
     else if (!$('#modal-review').hidden) $('#modal-review').hidden = true;
     else if (!$('#modal-about').hidden) $('#modal-about').hidden = true;

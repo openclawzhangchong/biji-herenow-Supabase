@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="biji">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -54,7 +54,9 @@
         <label class="field"><span>设置解锁密码</span>
           <input type="password" id="setup-pass" placeholder="至少 6 位，用于加密全部笔记" autocomplete="new-password" minlength="6" required>
         </label>
-        <label class="field"><span>再输一次</span>
+        <p class="default-pass-tip">默认密码：<b>123456</b> — 建议先用它开始，进入后立即在菜单里修改
+          <button type="button" class="link-btn" id="btn-fill-default">一键填入</button>
+        </p>        <label class="field"><span>再输一次</span>
           <input type="password" id="setup-pass2" placeholder="重复密码" autocomplete="new-password" required>
         </label>
         <label class="field"><span>密码提示（可选，只存本机）</span>
@@ -68,6 +70,7 @@
         <label class="field"><span>输入密码解锁</span>
           <input type="password" id="unlock-pass" placeholder="密码" autocomplete="current-password" required>
         </label>
+        <p class="default-pass-tip">默认密码：<b>123456</b></p>
         <p class="hint-line" id="unlock-hint" hidden></p>
         <p class="err-line" id="unlock-err" hidden>密码不对，或笔记属于其他密码</p>
         <button class="btn primary block" type="submit">解锁</button>
@@ -97,8 +100,7 @@
     </div>
   </header>
 
-  <div class="searchbar" id="searchbar" hidden>
-    <svg class="icon sm"><use href="#i-search"/></svg>
+  <div class="searchbar" id="searchbar" hidden>    <svg class="icon sm"><use href="#i-search"/></svg>
     <input type="search" id="search-input" placeholder="搜索笔记内容与标签…">
     <button class="icon-btn" id="btn-search-close"><svg class="icon sm"><use href="#i-x"/></svg></button>
   </div>
@@ -192,6 +194,23 @@
   </div>
 </div>
 
+<!-- 通用确认/输入对话框（替代原生 confirm/prompt） -->
+<div id="modal-dialog" class="modal-backdrop" hidden>
+  <div class="modal dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div class="modal-head"><span id="dialog-title">确认</span><button class="icon-btn" id="dialog-close"><svg class="icon sm"><use href="#i-x"/></svg></button></div>
+    <p class="dialog-msg" id="dialog-msg"></p>
+    <label class="field dialog-input-wrap" id="dialog-input-wrap" hidden>
+      <span id="dialog-label"></span>
+      <input type="text" id="dialog-input" autocomplete="off">
+    </label>
+    <p class="err-line" id="dialog-err" hidden></p>
+    <div class="modal-foot">
+      <button class="btn ghost" id="dialog-cancel">取消</button>
+      <button class="btn primary" id="dialog-ok">确定</button>
+    </div>
+  </div>
+</div>
+
 <!-- 离线/错误横幅 -->
 <div id="banner" class="banner" hidden></div>
 
@@ -199,6 +218,6 @@
 <div id="toasts"></div>
 
 <input type="file" id="import-file" accept=".json,application/json" hidden>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
